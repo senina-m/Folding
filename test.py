@@ -19,11 +19,9 @@ for i in range(len(models)):
             for l in range(len(atoms)):
                 if (len(modelAtoms) < 10) and (atoms[l].get_fullname() == 'CA'):
                     modelAtoms.append(atoms[l])
-
     matrix = []
     for j in range(len(modelAtoms)):
         matrix.append([0] * len(modelAtoms))
-
     for j in range(len(modelAtoms)):
         for k in range(len(modelAtoms)):
             matrix[j][k] = (modelAtoms[j] - modelAtoms[k])*(modelAtoms[j] - modelAtoms[k])
