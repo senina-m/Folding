@@ -109,10 +109,7 @@ for residue in models[0].get_residues():
 
 def get_peaks(dict):
     emission = 5
-    average = 0
-    for key in dict.keys():
-        average += dict[key][0]
-    average = emission + average/len(dict)
+    average = emission + sum(list(dict.keys())) / len(dict)
     e = 5
     result = {}
     for key in sorted(dict.keys()):
@@ -149,9 +146,29 @@ for i in range(0, len(full)):
                         dictionary = {key4: full[i].incidence[key1][1][key2][1][key3][1][key4][1][key5][0]}
                         full[i].result[key1][key2][key3][key4] = get_peaks(dictionary)
 
-for i in range(0, len(full)):
-    pass
-# plt.title(full[i].residue_name)
-# plt.bar(range(len(full[i].incidence)), list(full[i].incidence.values()[0]))
-# plt.xticks(range(len(full[i].incidence)), list(full[i].incidence.keys()))
-# plt.show()
+print(0)
+
+# for i in range(0, len(full)):
+#     for key1 in full[i].result.keys():
+#         if full[i].num_of_dihedral_angels > 1:
+#             for key2 in full[i].result[key1].keys():
+#                 if full[i].num_of_dihedral_angels > 2:
+#                     for key3 in full[i].result[key1][key2].keys():
+#                         if full[i].num_of_dihedral_angels > 3:
+#                             for key4 in full[i].result[key1][key2][key3].keys():
+#                                 if full[i].num_of_dihedral_angels > 4:
+#                                     plt.bar(range(len(full[i].result[key1][key2][key3][key4])),
+#                                             list(full[i].result[key1][key2][key3][key4].values()))
+#                                     plt.xticks(range(len(full[i].result[key1][key2][key3][key4])),
+#                                                list(full[i].result[key1][key2][key3][key4].keys()))
+#                                 else:
+#                                     plt.bar(range(len(full[i].result[key1][key2][key3])),
+#                                             list(full[i].result[key1][key2][key3].values()))
+#                                     plt.xticks(range(len(full[i].result[key1][key2][key3])),
+#                                                list(full[i].result[key1][key2][key3].keys()))
+#                         else:
+#
+# # plt.title(full[i].residue_name)
+# # plt.bar(range(len(full[i].incidence)), list(full[i].incidence.values()[0]))
+# # plt.xticks(range(len(full[i].incidence)), list(full[i].incidence.keys()))
+# # plt.show()

@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 
-D = {u'Label1': 26, u'Label2': 17, u'Label3':30}
+D = {u'Label1': 26, u'Label2': 17, u'Label3': 30}
 
 plt.bar(range(len(D)), list(D.values()))
+plt.xticks(range(len(D)), list(D.keys()))
 
 plt.show()
 
