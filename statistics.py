@@ -22,9 +22,7 @@ class ResiduesAngles:
         self.arr_result_values_of_angels = []
         for i in range(0, num_of_dihedral_angels):
             arr.append([])
-            a = n * [0]
-            arr2.append(a)
-        self.arr_of_values = arr
+            arr2.append(n * [0])
         # self.num_of_such_res = 0
         self.arr_of_incidence = arr2
 
@@ -71,7 +69,6 @@ for residue in models[0].get_residues():
                     vector3 = residue[full[i].arr_of_atoms_names[j][2]].get_vector()
                     vector4 = residue[full[i].arr_of_atoms_names[j][3]].get_vector()
                     angle = calc_dihedral(vector1, vector2, vector3, vector4)
-                    full[i].arr_of_values[j].append(angle)
                     full[i].arr_of_incidence[j][get_index(angle)] = 1 + full[i].arr_of_incidence[j][get_index(angle)]
 # print(number_of_residues_in_str)
 

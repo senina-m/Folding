@@ -1,19 +1,11 @@
-a = [1, 2, 3, 4, 4, 3, 2, 1]
+import matplotlib.pyplot as plt
 
+D = {u'Label1': 26, u'Label2': 17, u'Label3':30}
 
-def get_peaks(arr):
-    emission = 0
-    average = sum(arr) / len(arr) + emission
-    e = 1
-    result = []
-    for i in range(e, len(arr) - e):
-        peak = True
-        for j in range(i - e, i + e + 1):
-            if not (average <= arr[i] and arr[i] >= arr[j]) or (arr[i] == arr[i+1]):
-                peak = False
-        if peak:
-            result.append(i)
-    return result
+plt.bar(range(len(D)), list(D.values()))
 
+plt.show()
 
-print(get_peaks(a))
+# plot(full[i].arr_of_incidence[j], label="angel {}".format(j + 1))
+# plt.ylabel(str(sum(full[i].arr_of_incidence[j])))
+# plt.legend()
