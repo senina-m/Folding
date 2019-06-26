@@ -68,48 +68,30 @@ def get_angel(i, j, residue):
     return angle
 
 
+def get_angle_of_next_level(dict, residue, my_res, level, a):
+    a.append(get_angel(i, 0, residue))
+    next_level = level + 1
+    if a[level] not in dict:
+        dict[a[level]] = [1, {}]
+        if my_res.num_of_dihedral_angels > level + 1:
+            get_angle_of_next_level(dict[tuple(a)[level]][1], residue, my_res, next_level, a)
+    else:
+        dict[tuple(a)[level]][0] += 1
+    return dict
+
+
 models = list(structure.get_models())
 for residue in models[0].get_residues():
     for i in range(0, 18):
         if residue.get_resname() == full[i].residue_name:
             if not residue.is_disordered():
-                angle1 = get_angel(i, 0, residue)
-                if angle1 not in full[i].incidence:
-                    full[i].incidence[angle1] = [1, {}]
-                    if full[i].num_of_dihedral_angels > 1:
-                        angle2 = get_angel(i, 1, residue)
-                        if angle2 not in full[i].incidence[angle1][1]:
-                            full[i].incidence[angle1][1][angle2] = [1, {}]
-                            if full[i].num_of_dihedral_angels > 2:
-                                angle3 = get_angel(i, 2, residue)
-                                if angle3 not in full[i].incidence[angle1][1][angle2][1]:
-                                    full[i].incidence[angle1][1][angle2][1][angle3] = [1, {}]
-                                    if full[i].num_of_dihedral_angels > 3:
-                                        angle4 = get_angel(i, 3, residue)
-                                        if angle4 not in full[i].incidence[angle1][1][angle2][1][angle3][1]:
-                                            full[i].incidence[angle1][1][angle2][1][angle3][1][angle4] = [1, {}]
-                                            if full[i].num_of_dihedral_angels == 5:
-                                                angle5 = get_angel(i, 4, residue)
-                                                if angle5 not in \
-                                                        full[i].incidence[angle1][1][angle2][1][angle3][1][angle4][1]:
-                                                    full[i].incidence[angle1][1][angle2][1][angle3][1][angle4][1][
-                                                        angle5] = [1]
-                                                else:
-                                                    full[i].incidence[angle1][1][angle2][1][angle3][1][angle4][1][
-                                                        angle5][0] += 1
-                                        else:
-                                            full[i].incidence[angle1][1][angle2][1][angle3][1][angle4][0] += 1
-                                else:
-                                    full[i].incidence[angle1][1][angle2][1][angle3][0] += 1
-                        else:
-                            full[i].incidence[angle1][1][angle2][0] += 1
-                else:
-                    full[i].incidence[angle1][0] += 1
+                angle = []
+                full[i].incidence = get_angle_of_next_level(full[i].incidence, residue, full[i], 0, angle)
 
 
 def get_peaks(dict):
-    emission = 5
-    average = emission + sum(list(dict.keys())) / len(dict)
+    emission = 1
+    average = sum(list(dict.values())) / (emission * len(dict))
     e = 5
     result = {}
     for key in sorted(dict.keys()):
@@ -119,56 +101,40 @@ def get_peaks(dict):
                 if not (average <= dict[key] and dict[key] >= dict[j]):
                     peak = False
         if peak:
-            result = {key: {}}
+            result[key] = {}
     return result
 
 
-dictionary = {}
+def find_result_angles_of_this_level(output_dict, input_dict):
+    dict = {}
+    for angle in input_dict.keys():
+        dict[angle] = input_dict[angle][0]
+    # lists = sorted(dict.items())
+    # x, y = zip(*lists)
+    # plt.plot(x, y)
+    # plt.show()
+    if len(dict) != 0:
+        output_dict = get_peaks(dict)
+    else:
+        return output_dict
+    dict.clear()
+    for peak_angle in output_dict.keys():
+        find_result_angles_of_this_level(output_dict[peak_angle], input_dict[peak_angle][1])
+    return output_dict
+
+
 for i in range(0, len(full)):
-    for key in full[i].incidence.keys():
-        dictionary = {key: full[i].incidence[key][0]}
-        full[i].result = get_peaks(dictionary)
-    for key1 in full[i].result.keys():
-        dictionary.clear()
-        for key2 in full[i].incidence[key1][1].keys():
-            dictionary = {key1: full[i].incidence[key1][1][key2][0]}
-            full[i].result[key1] = get_peaks(dictionary)
-            dictionary.clear()
-            for key3 in full[i].incidence[key1][1][key2][1].keys():
-                dictionary = {key2: full[i].incidence[key1][1][key2][1][key3][0]}
-                full[i].result[key1][key2] = get_peaks(dictionary)
-                dictionary.clear()
-                for key4 in full[i].incidence[key1][1][key2][1][key3][1].keys():
-                    dictionary = {key3: full[i].incidence[key1][1][key2][1][key3][1][key4][0]}
-                    full[i].result[key1][key2][key3] = get_peaks(dictionary)
-                    dictionary.clear()
-                    for key5 in full[i].incidence[key1][1][key2][1][key3][1][key4][1].keys():
-                        dictionary = {key4: full[i].incidence[key1][1][key2][1][key3][1][key4][1][key5][0]}
-                        full[i].result[key1][key2][key3][key4] = get_peaks(dictionary)
+    full[i].result = find_result_angles_of_this_level(full[i].result, full[i].incidence)
 
-print(0)
+print('Incidence len: ' + str(len(full[0].incidence)) + '                Result len: ' + str(len(full[0].result)))
 
-# for i in range(0, len(full)):
-#     for key1 in full[i].result.keys():
-#         if full[i].num_of_dihedral_angels > 1:
-#             for key2 in full[i].result[key1].keys():
-#                 if full[i].num_of_dihedral_angels > 2:
-#                     for key3 in full[i].result[key1][key2].keys():
-#                         if full[i].num_of_dihedral_angels > 3:
-#                             for key4 in full[i].result[key1][key2][key3].keys():
-#                                 if full[i].num_of_dihedral_angels > 4:
-#                                     plt.bar(range(len(full[i].result[key1][key2][key3][key4])),
-#                                             list(full[i].result[key1][key2][key3][key4].values()))
-#                                     plt.xticks(range(len(full[i].result[key1][key2][key3][key4])),
-#                                                list(full[i].result[key1][key2][key3][key4].keys()))
-#                                 else:
-#                                     plt.bar(range(len(full[i].result[key1][key2][key3])),
-#                                             list(full[i].result[key1][key2][key3].values()))
-#                                     plt.xticks(range(len(full[i].result[key1][key2][key3])),
-#                                                list(full[i].result[key1][key2][key3].keys()))
-#                         else:
-#
-# # plt.title(full[i].residue_name)
-# # plt.bar(range(len(full[i].incidence)), list(full[i].incidence.values()[0]))
-# # plt.xticks(range(len(full[i].incidence)), list(full[i].incidence.keys()))
-# # plt.show()
+print('Enter residue name')
+input_res_name = input()
+for s in full:
+    if input_res_name == s.residue_name:
+        print(s.result.keys())
+        print('Enter first dihedral angel')
+        first_angle_val = input()
+        for key in s.result.keys():
+            if first_angle_val == key:
+                print(s.result[key].keys())
