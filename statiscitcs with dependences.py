@@ -2,12 +2,6 @@ from Bio.PDB import *
 import matplotlib.pyplot as plt
 import math as math
 
-pdbl = PDBList()
-filename = '6gov'
-pdbl.retrieve_pdb_file(filename, pdir='.', file_format='mmCif')
-parser = MMCIFParser(QUIET=True)
-structure = parser.get_structure(filename, filename + '.cif')
-
 
 class DependentAngle:
 
@@ -18,8 +12,6 @@ class DependentAngle:
 
 
 class ResiduesAngles:
-
-    # incidence: Dict[int, list]
 
     def __init__(self, residue_name, num_of_dihedral_angels, arr_of_atoms_names):
         n = 360
@@ -80,6 +72,14 @@ def get_angle_of_next_level(dict, residue, my_res, level, a):
     return dict
 
 
+pdbl = PDBList()
+# names_file = input()
+# f = open(names_file, "r")
+# for line in f:
+#     filename = f.readline()
+filename = '6gov'
+parser = MMCIFParser(QUIET=True)
+structure = parser.get_structure(filename, filename + '.cif')
 models = list(structure.get_models())
 for residue in models[0].get_residues():
     for i in range(0, 18):
@@ -126,15 +126,23 @@ def find_result_angles_of_this_level(output_dict, input_dict):
 for i in range(0, len(full)):
     full[i].result = find_result_angles_of_this_level(full[i].result, full[i].incidence)
 
-print('Incidence len: ' + str(len(full[0].incidence)) + '                Result len: ' + str(len(full[0].result)))
+
+def printing_of_angles(num_of_angles, num, result_dict):
+    if len(result_dict.keys()) != 0:
+        print('Values of  angle:')
+        print(result_dict.keys())
+        print('Enter value of ', num, ' angle to see the next angle dependeces:')
+        angle_val = input()
+        if num_of_angles > num and angle_val in result_dict:
+            printing_of_angles(num_of_angles, num + 1, result_dict[angle_val])
+        else:
+            print('There no common values for', num + 1, 'angle :(')
+    else:
+        print('There no common values for this angle :(')
+
 
 print('Enter residue name')
 input_res_name = input()
 for s in full:
     if input_res_name == s.residue_name:
-        print(s.result.keys())
-        print('Enter first dihedral angel')
-        first_angle_val = input()
-        for key in s.result.keys():
-            if first_angle_val == key:
-                print(s.result[key].keys())
+        printing_of_angles(s.num_of_dihedral_angels, 1, s.result)
