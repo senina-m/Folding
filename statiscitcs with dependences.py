@@ -105,26 +105,32 @@ def get_peaks(dict):
     return result
 
 
-def find_result_angles_of_this_level(output_dict, input_dict):
+def find_result_angles_of_this_level(output_dict, input_dict, level, prev_angle):
     dict = {}
     for angle in input_dict.keys():
         dict[angle] = input_dict[angle][0]
-    # lists = sorted(dict.items())
-    # x, y = zip(*lists)
-    # plt.plot(x, y)
-    # plt.show()
     if len(dict) != 0:
+        if len(dict) > 5:
+            lists = sorted(dict.items())
+            x, y = zip(*lists)
+            string = 'prev angle value ' + prev_angle + ', this angle #:' + str(level)
+            plt.plot(x, y, label=string)
+            plt.xlabel('angle')
+            plt.ylabel('incidence')
         output_dict = get_peaks(dict)
     else:
         return output_dict
     dict.clear()
     for peak_angle in output_dict.keys():
-        find_result_angles_of_this_level(output_dict[peak_angle], input_dict[peak_angle][1])
+        find_result_angles_of_this_level(output_dict[peak_angle], input_dict[peak_angle][1], level + 1, str(peak_angle))
     return output_dict
 
 
 for i in range(0, len(full)):
-    full[i].result = find_result_angles_of_this_level(full[i].result, full[i].incidence)
+    full[i].result = find_result_angles_of_this_level(full[i].result, full[i].incidence, 1, '')
+    plt.suptitle(str(full[i].residue_name))
+    plt.legend()
+    plt.show()
 
 
 def printing_of_angles(num_of_angles, num, result_dict):
