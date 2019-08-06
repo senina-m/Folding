@@ -18,7 +18,7 @@ class ResiduesAngles:
         self.residue_name = residue_name
         self.num_of_dihedral_angels = num_of_dihedral_angels
         self.arr_of_atoms_names = arr_of_atoms_names
-        self.incidence = {}
+        self.frequency = {}
         self.result = {}
 
 
@@ -51,24 +51,23 @@ def get_index(angle):
     return int(round((angle + math.pi) * (n - 1) * 0.5 / math.pi))
 
 
-def get_angel(i, j, residue):
-    vector1 = residue[full[i].arr_of_atoms_names[j][0]].get_vector()
-    vector2 = residue[full[i].arr_of_atoms_names[j][1]].get_vector()
-    vector3 = residue[full[i].arr_of_atoms_names[j][2]].get_vector()
-    vector4 = residue[full[i].arr_of_atoms_names[j][3]].get_vector()
+def get_angel(i, level, residue):
+    vector1 = residue[full[i].arr_of_atoms_names[level][0]].get_vector()
+    vector2 = residue[full[i].arr_of_atoms_names[level][1]].get_vector()
+    vector3 = residue[full[i].arr_of_atoms_names[level][2]].get_vector()
+    vector4 = residue[full[i].arr_of_atoms_names[level][3]].get_vector()
     angle = get_index(calc_dihedral(vector1, vector2, vector3, vector4))
     return angle
 
 
-def get_angle_of_next_level(dict, residue, my_res, level, a):
-    a.append(get_angel(i, 0, residue))
-    next_level = level + 1
-    if a[level] not in dict:
-        dict[a[level]] = [1, {}]
+def get_angle_of_next_level(dict, my_res, level, angle_list, res_num):
+    angle_list.append(get_angel(res_num, level, residue))
+    if angle_list[level] not in dict:
+        dict[angle_list[level]] = [1, {}]
         if my_res.num_of_dihedral_angels > level + 1:
-            get_angle_of_next_level(dict[tuple(a)[level]][1], residue, my_res, next_level, a)
+            get_angle_of_next_level(dict[tuple(angle_list)[level]][1], my_res, level + 1, angle_list, res_num)
     else:
-        dict[tuple(a)[level]][0] += 1
+        dict[tuple(angle_list)[level]][0] += 1
     return dict
 
 
@@ -85,14 +84,16 @@ for residue in models[0].get_residues():
     for i in range(0, 18):
         if residue.get_resname() == full[i].residue_name:
             if not residue.is_disordered():
-                angle = []
-                full[i].incidence = get_angle_of_next_level(full[i].incidence, residue, full[i], 0, angle)
+                full[i].frequency = get_angle_of_next_level(full[i].frequency, full[i], 0, [], i)
 
 
+# Takes: dict:(angle -> frequency)
+# Returns: dict:(angle(peak) -> [angles of the peak])
 def get_peaks(dict):
     emission = 1
     average = sum(list(dict.values())) / (emission * len(dict))
     e = 5
+    ev = 3
     result = {}
     for key in sorted(dict.keys()):
         peak = True
@@ -101,33 +102,90 @@ def get_peaks(dict):
                 if not (average <= dict[key] and dict[key] >= dict[j]):
                     peak = False
         if peak:
-            result[key] = {}
+            result[key] = []
+            i = key
+            not_bound = True
+            while (not_bound and i < 360) and i > 0:
+                not_bound = True
+                i -= 1
+                for k in range(i - ev, i + ev + 1):
+                    if k in dict and i in dict:
+                        if not dict[i] <= dict[k]:
+                            not_bound = False
+            for p in range(i, key):
+                if p in dict:
+                    result[key].append(p)
+            i = key
+            not_bound = True
+            while (not_bound and i < 360) and i > 0:
+                not_bound = True
+                i += 1
+                for k in range(i - ev, i + ev + 1):
+                    if k in dict and i in dict:
+                        if not dict[i] <= dict[k]:
+                            not_bound = False
+            for p in range(key, i):
+                if p in dict:
+                    result[key].append(p)
     return result
 
 
+# Takes:
+# output dictionary -  result dict of this level
+# input dictionary -  dictionary like: {angle -> [frecuency, {}]}
+# Returns dictionary with freaquent angles like: {a -> {a -> {}, a -> {a -> {}}}
 def find_result_angles_of_this_level(output_dict, input_dict, level, prev_angle):
     dict = {}
     for angle in input_dict.keys():
         dict[angle] = input_dict[angle][0]
     if len(dict) != 0:
-        if len(dict) > 5:
-            lists = sorted(dict.items())
-            x, y = zip(*lists)
-            string = 'prev angle value ' + prev_angle + ', this angle #:' + str(level)
-            plt.plot(x, y, label=string)
-            plt.xlabel('angle')
-            plt.ylabel('incidence')
-        output_dict = get_peaks(dict)
+        # if len(dict) > 5:
+            # lists = sorted(dict.items())
+            # x, y = zip(*lists)
+            # string = 'prev angle value ' + prev_angle + ', this angle #:' + str(level)
+            # plt.plot(x, y, label=string)
+            # plt.xlabel('angle')
+            # plt.ylabel('frequency')
+        peaks = get_peaks(dict)
     else:
         return output_dict
     dict.clear()
-    for peak_angle in output_dict.keys():
-        find_result_angles_of_this_level(output_dict[peak_angle], input_dict[peak_angle][1], level + 1, str(peak_angle))
+    for peak_angle in peaks.keys():
+        f = make_res_dict(peak_angle, input_dict, peaks[peak_angle])
+        output_dict[peak_angle] = f[peak_angle]
+        find_result_angles_of_this_level(output_dict[peak_angle][1], output_dict[peak_angle][1], level + 1,
+                                         str(peak_angle))
     return output_dict
 
 
+def sum_dicts(general_dict, dict):
+    for angle in dict.keys():
+        if angle in general_dict:
+            general_dict[angle] = sum_arrs(general_dict[angle], dict[angle])
+        else:
+            general_dict[angle] = dict[angle]
+    return general_dict
+
+
+def sum_arrs(general_arr, arr):
+    res_arr = [general_arr[0] + arr[0]]
+    if len(general_arr[1]) > 0 or len(arr[1]) > 0:
+        res_arr.append(sum_dicts(general_arr[1], arr[1]))
+    else:
+        res_arr.append({})
+    return res_arr
+
+
+def make_res_dict(general_angle, dict, angles_list):
+    res_array = dict[general_angle]
+    for angle in angles_list:
+        res_array = sum_arrs(res_array, dict[angle])
+    result = {general_angle: res_array}
+    return result
+
+
 for i in range(0, len(full)):
-    full[i].result = find_result_angles_of_this_level(full[i].result, full[i].incidence, 1, '')
+    full[i].result = find_result_angles_of_this_level(full[i].result, full[i].frequency, 1, '')
     plt.suptitle(str(full[i].residue_name))
     plt.legend()
     plt.show()
