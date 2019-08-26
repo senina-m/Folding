@@ -1,6 +1,7 @@
 from Bio.PDB import *
 import matplotlib.pyplot as plt
 import math as math
+import os
 
 
 class DependentAngle:
@@ -51,40 +52,52 @@ def get_index(angle):
     return int(round((angle + math.pi) * (n - 1) * 0.5 / math.pi))
 
 
+# Takes: i: residue # (1..18)
+#        level: level
+#        residue: structure residue
 def get_angel(i, level, residue):
-    vector1 = residue[full[i].arr_of_atoms_names[level][0]].get_vector()
-    vector2 = residue[full[i].arr_of_atoms_names[level][1]].get_vector()
-    vector3 = residue[full[i].arr_of_atoms_names[level][2]].get_vector()
-    vector4 = residue[full[i].arr_of_atoms_names[level][3]].get_vector()
-    angle = get_index(calc_dihedral(vector1, vector2, vector3, vector4))
+    try:
+        vector1 = residue[full[i].arr_of_atoms_names[level][0]].get_vector()
+        vector2 = residue[full[i].arr_of_atoms_names[level][1]].get_vector()
+        vector3 = residue[full[i].arr_of_atoms_names[level][2]].get_vector()
+        vector4 = residue[full[i].arr_of_atoms_names[level][3]].get_vector()
+        angle = get_index(calc_dihedral(vector1, vector2, vector3, vector4))
+    except KeyError:
+        angle = -1
     return angle
 
 
-def get_angle_of_next_level(dict, my_res, level, angle_list, res_num):
+# Takes: empty frequency dictionary
+#        my_res: my residue class
+#        level: level 1..5
+#        angle list: list with angles of this residue
+#        res_num: 1..18
+#        residue: structure residue
+# Returns: frequency dictionary angle -> [#, {}]
+def get_angle_of_next_level(dict, my_res, level, angle_list, res_num, residue):
     angle_list.append(get_angel(res_num, level, residue))
     if angle_list[level] not in dict:
         dict[angle_list[level]] = [1, {}]
         if my_res.num_of_dihedral_angels > level + 1:
-            get_angle_of_next_level(dict[tuple(angle_list)[level]][1], my_res, level + 1, angle_list, res_num)
+            get_angle_of_next_level(dict[tuple(angle_list)[level]][1], my_res, level + 1, angle_list, res_num, residue)
     else:
         dict[tuple(angle_list)[level]][0] += 1
     return dict
 
 
-pdbl = PDBList()
-# names_file = input()
-# f = open(names_file, "r")
-# for line in f:
-#     filename = f.readline()
-filename = '6gov'
-parser = MMCIFParser(QUIET=True)
-structure = parser.get_structure(filename, filename + '.cif')
-models = list(structure.get_models())
-for residue in models[0].get_residues():
-    for i in range(0, 18):
-        if residue.get_resname() == full[i].residue_name:
-            if not residue.is_disordered():
-                full[i].frequency = get_angle_of_next_level(full[i].frequency, full[i], 0, [], i)
+path = "C:/Практика Biocad/Python Projects"
+names_file = os.listdir(path)
+for filename in names_file:
+    if filename[5:8] == "cif":
+        print(filename)
+        parser = MMCIFParser(QUIET=True)
+        structure = parser.get_structure(filename[0:3], filename)
+        models = list(structure.get_models())
+        for residue in models[0].get_residues():
+            for i in range(0, 18):
+                if residue.get_resname() == full[i].residue_name:
+                    if not residue.is_disordered():
+                        full[i].frequency = get_angle_of_next_level(full[i].frequency, full[i], 0, [], i, residue)
 
 
 # Takes: dict:(angle -> frequency)
@@ -92,41 +105,42 @@ for residue in models[0].get_residues():
 def get_peaks(dict):
     emission = 1
     average = sum(list(dict.values())) / (emission * len(dict))
-    e = 5
-    ev = 3
+    e = 20
+    ev = 10
     result = {}
     for key in sorted(dict.keys()):
-        peak = True
-        for j in range(key - e, key + e + 1):
-            if j in dict:
-                if not (average <= dict[key] and dict[key] >= dict[j]):
-                    peak = False
-        if peak:
-            result[key] = []
-            i = key
-            not_bound = True
-            while (not_bound and i < 360) and i > 0:
+        if dict[key] > average:
+            peak = True
+            for j in [c for c in range(key - e, key + e + 1) if c != key]:
+                if j in dict:
+                    if not (dict[key] > dict[j] or (key < j and dict[key] == dict[j])):
+                        peak = False
+            if peak:
+                result[key] = []
+                i = key
                 not_bound = True
-                i -= 1
-                for k in range(i - ev, i + ev + 1):
-                    if k in dict and i in dict:
-                        if not dict[i] <= dict[k]:
-                            not_bound = False
-            for p in range(i, key):
-                if p in dict:
-                    result[key].append(p)
-            i = key
-            not_bound = True
-            while (not_bound and i < 360) and i > 0:
+                while (not_bound and i < 360) and i > 0:
+                    not_bound = True
+                    i -= 1
+                    for k in range(i - ev, i + ev + 1):
+                        if k in dict and i in dict:
+                            if not dict[i] <= dict[k]:
+                                not_bound = False
+                for p in range(i, key):
+                    if p in dict:
+                        result[key].append(p)
+                i = key
                 not_bound = True
-                i += 1
-                for k in range(i - ev, i + ev + 1):
-                    if k in dict and i in dict:
-                        if not dict[i] <= dict[k]:
-                            not_bound = False
-            for p in range(key, i):
-                if p in dict:
-                    result[key].append(p)
+                while (not_bound and i < 360) and i > 0:
+                    not_bound = True
+                    i += 1
+                    for k in range(i - ev, i + ev + 1):
+                        if k in dict and i in dict:
+                            if not dict[i] <= dict[k]:
+                                not_bound = False
+                for p in range(key, i):
+                    if p in dict:
+                        result[key].append(p)
     return result
 
 
@@ -137,15 +151,18 @@ def get_peaks(dict):
 def find_result_angles_of_this_level(output_dict, input_dict, level, prev_angle):
     dict = {}
     for angle in input_dict.keys():
+        # if not angle == -1:
+        #     dict[angle] = input_dict[angle][0]
         dict[angle] = input_dict[angle][0]
     if len(dict) != 0:
-        # if len(dict) > 5:
-            # lists = sorted(dict.items())
-            # x, y = zip(*lists)
-            # string = 'prev angle value ' + prev_angle + ', this angle #:' + str(level)
-            # plt.plot(x, y, label=string)
-            # plt.xlabel('angle')
-            # plt.ylabel('frequency')
+        # if len(dict) > 3:
+        #     string = 'prev angle value ' + prev_angle + ', this angle ' + str(level)
+        #     col = ['b', 'g', 'r', 'c', 'm']
+        #     plt.plot(dict.keys(), dict.values(), '.', color=col[level], label=string)
+        #     plt.xlabel('angle')
+        #     plt.ylabel('frequency')
+        # # plt.legend
+        # plt.show()
         peaks = get_peaks(dict)
     else:
         return output_dict
@@ -186,9 +203,9 @@ def make_res_dict(general_angle, dict, angles_list):
 
 for i in range(0, len(full)):
     full[i].result = find_result_angles_of_this_level(full[i].result, full[i].frequency, 1, '')
-    plt.suptitle(str(full[i].residue_name))
-    plt.legend()
-    plt.show()
+    # plt.suptitle(str(full[i].residue_name))
+    # plt.legend()
+    # plt.show()
 
 
 def printing_of_angles(num_of_angles, num, result_dict):
@@ -197,16 +214,20 @@ def printing_of_angles(num_of_angles, num, result_dict):
         print(result_dict.keys())
         print('Enter value of ', num, ' angle to see the next angle dependeces:')
         angle_val = input()
-        if num_of_angles > num and angle_val in result_dict:
-            printing_of_angles(num_of_angles, num + 1, result_dict[angle_val])
+        if num_of_angles > num and int(angle_val) in result_dict:
+            printing_of_angles(num_of_angles, num + 1, result_dict[int(angle_val)][1])
         else:
             print('There no common values for', num + 1, 'angle :(')
+            # print(result_dict)
     else:
         print('There no common values for this angle :(')
 
 
-print('Enter residue name')
-input_res_name = input()
-for s in full:
-    if input_res_name == s.residue_name:
-        printing_of_angles(s.num_of_dihedral_angels, 1, s.result)
+while True:
+    print('Enter residue name')
+    input_res_name = input()
+    for s in full:
+        if input_res_name == s.residue_name:
+            # print(s.result)
+            # print(s.frequency)
+            printing_of_angles(s.num_of_dihedral_angels, 1, s.result)
