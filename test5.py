@@ -87,45 +87,48 @@ def cnn_model_fn(features, labels, mode):
 
     pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
 
-    # Dense Layer
-    pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
-    dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
-    dropout = tf.layers.dropout(
-        inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
+    # # Dense Layer
+    # pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
+    # dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
+    # dropout = tf.layers.dropout(
+    #     inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
 
     # Logits Layer
-    logits = tf.layers.dense(inputs=dropout, units=features.shape[0] * 5)
+    logits = tf.layers.dense(inputs=pool2, units=features.shape[0] * 5)
     print(logits.shape)
 
+    # making a right result to compare with it
     example = get_edm(structure_name)
     mse = tf.reduce_mean(tf.squared_difference(logits, example.reshape(1,)))
 
-    predictions = {
-        # Generate predictions (for PREDICT and EVAL mode)
-        "classes": tf.argmax(input=logits, axis=1),
-        # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
-        # `logging_hook`.
-        "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
-    }
+    # TODO: loss function and training
 
-    if mode == tf.estimator.ModeKeys.PREDICT:
-        return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
-
-    # Calculate Loss (for both TRAIN and EVAL modes)
-    loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-
-    # Configure the Training Op (for TRAIN mode)
-    if mode == tf.estimator.ModeKeys.TRAIN:
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-        train_op = optimizer.minimize(
-            loss=loss,
-            global_step=tf.train.get_global_step())
-        return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
-
-    # Add evaluation metrics (for EVAL mode)
-    eval_metric_ops = {
-        "accuracy": tf.metrics.accuracy(
-            labels=labels, predictions=predictions["classes"])
-    }
-    return tf.estimator.EstimatorSpec(
-        mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
+    # predictions = {
+    #     # Generate predictions (for PREDICT and EVAL mode)
+    #     "classes": tf.argmax(input=logits, axis=1),
+    #     # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
+    #     # `logging_hook`.
+    #     "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
+    # }
+    #
+    # if mode == tf.estimator.ModeKeys.PREDICT:
+    #     return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+    #
+    # # Calculate Loss (for both TRAIN and EVAL modes)
+    # loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+    #
+    # # Configure the Training Op (for TRAIN mode)
+    # if mode == tf.estimator.ModeKeys.TRAIN:
+    #     optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+    #     train_op = optimizer.minimize(
+    #         loss=loss,
+    #         global_step=tf.train.get_global_step())
+    #     return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+    #
+    # # Add evaluation metrics (for EVAL mode)
+    # eval_metric_ops = {
+    #     "accuracy": tf.metrics.accuracy(
+    #         labels=labels, predictions=predictions["classes"])
+    # }
+    # return tf.estimator.EstimatorSpec(
+    #     mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
