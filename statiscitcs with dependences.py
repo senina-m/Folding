@@ -2,6 +2,7 @@ from Bio.PDB import *
 import matplotlib.pyplot as plt
 import math as math
 import os
+import pickle
 
 
 class DependentAngle:
@@ -98,6 +99,10 @@ for filename in names_file:
                 if residue.get_resname() == full[i].residue_name:
                     if not residue.is_disordered():
                         full[i].frequency = get_angle_of_next_level(full[i].frequency, full[i], 0, [], i, residue)
+f = open('result_stat_file.txt', 'wb')
+pickle.dump(full, f)
+f.close()
+
 
 
 # Takes: dict:(angle -> frequency)
@@ -151,18 +156,18 @@ def get_peaks(dict):
 def find_result_angles_of_this_level(output_dict, input_dict, level, prev_angle):
     dict = {}
     for angle in input_dict.keys():
-        # if not angle == -1:
-        #     dict[angle] = input_dict[angle][0]
+        if not angle == -1:
+            dict[angle] = input_dict[angle][0]
         dict[angle] = input_dict[angle][0]
     if len(dict) != 0:
-        # if len(dict) > 3:
-        #     string = 'prev angle value ' + prev_angle + ', this angle ' + str(level)
-        #     col = ['b', 'g', 'r', 'c', 'm']
-        #     plt.plot(dict.keys(), dict.values(), '.', color=col[level], label=string)
-        #     plt.xlabel('angle')
-        #     plt.ylabel('frequency')
-        # # plt.legend
-        # plt.show()
+        if len(dict) > 3:
+            string = 'prev angle value ' + prev_angle + ', this angle # ' + str(level)
+            col = ['b', 'g', 'r', 'c', 'm']
+            plt.plot(dict.keys(), dict.values(), '.', color=col[level], label=string)
+            plt.xlabel('angle')
+            plt.ylabel('frequency')
+        plt.legend()
+        plt.show()
         peaks = get_peaks(dict)
     else:
         return output_dict
@@ -203,9 +208,9 @@ def make_res_dict(general_angle, dict, angles_list):
 
 for i in range(0, len(full)):
     full[i].result = find_result_angles_of_this_level(full[i].result, full[i].frequency, 1, '')
-    # plt.suptitle(str(full[i].residue_name))
-    # plt.legend()
-    # plt.show()
+    plt.suptitle(str(full[i].residue_name))
+    plt.legend()
+    plt.show()
 
 
 def printing_of_angles(num_of_angles, num, result_dict):
