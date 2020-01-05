@@ -34,7 +34,7 @@ full = [ResiduesAngles("ARG", 5, [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "C
         ResiduesAngles("GLN", 3, [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "CD"], ["CB", "CG", "CD", "OE1"]]),
         ResiduesAngles("GLU", 3, [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "CD"], ["CB", "CG", "CD", "OE1"]]),
         ResiduesAngles("HIS", 2, [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "ND1"]]),
-        ResiduesAngles("IlE", 2, [["N", "CA", "CB", "CG1"], ["CA", "CB", "CG1", "CD"]]),
+        ResiduesAngles("ILE", 2, [["N", "CA", "CB", "CG1"], ["CA", "CB", "CG1", "CD"]]),
         ResiduesAngles("LEU", 2, [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "CD1"]]),
         ResiduesAngles("LYS", 4, [["N", "CA", "CB", "CG"], ["CA", "CB", "CG", "CD"], ["CB", "CG", "CD", "CE"],
                                   ["CG", "CD", "CE", "NZ"]]),
@@ -88,33 +88,27 @@ def get_angle_of_next_level(dict, my_res, level, angle_list, res_num, residue):
     return dict
 
 
-# path = "/data/good_p"
 path = "C:/Практика Biocad/PDB/resultbase"
 names_file = os.listdir(path)
 for filename in names_file:
-    if filename[5:8] == ".pdb":
-        print(filename)
-
+    if filename[4:8] == ".cif":
+        # print(filename)
         shutil.move(path + "/" + filename, "C:/Практика Biocad/Python Projects/" + filename)
-
-        parser = PDBParser(QUIET=True)
-        structure = parser.get_structure(filename[0:3], filename)
+        parser = MMCIFParser(QUIET=True)
+        # print(filename[0:4] + " " + filename)
+        # structure = parser.get_structure(filename[0:3], filename)
+        structure = parser.get_structure(filename, filename)
         models = list(structure.get_models())
         for residue in models[0].get_residues():
             for i in range(0, 18):
                 if residue.get_resname() == full[i].residue_name:
                     if not residue.is_disordered():
                         full[i].frequency = get_angle_of_next_level(full[i].frequency, full[i], 0, [], i, residue)
-
         shutil.move("C:/Практика Biocad/Python Projects/" + filename, path + "/" + filename)
 
 # Saving python object to file
-#
-# file = open("statistics_savings.dat", "w+")
-# path = "/data/statistics_savings.dat"
 file = open("statistics_savings.dat", "w+")
 path = "C:/Практика Biocad/Python Projects/statistics_savings.dat"
-
 with open(path, "wb") as f:
     pickle.dump(full, f)
 with open(path, "rb") as f:
@@ -124,7 +118,7 @@ with open(path, "rb") as f:
 # Takes: dict:(angle -> frequency)
 # Returns: dict:(angle(peak) -> [angles of the peak])
 def get_peaks(dict):
-    average = sum(list(dict.values())) /len(dict)
+    average = sum(list(dict.values())) / len(dict)
     e = 20
     ev = 10
     result = {}
@@ -175,14 +169,14 @@ def find_result_angles_of_this_level(output_dict, input_dict, level, prev_angle)
             dict[angle] = input_dict[angle][0]
         dict[angle] = input_dict[angle][0]
     if len(dict) != 0:
-        # if len(dict) > 3:
-        #     string = 'prev angle value ' + prev_angle + ', this angle # ' + str(level)
-        #     col = ['b', 'g', 'r', 'c', 'm']
-        #     plt.plot(dict.keys(), dict.values(), '.', color=col[level], label=string)
-        #     plt.xlabel('angle')
-        #     plt.ylabel('frequency')
-        # plt.legend()
-        # plt.show()
+        if len(dict) > 3:
+            string = 'prev angle value ' + prev_angle + ', this angle # ' + str(level)
+            col = ['b', 'g', 'r', 'c', 'm']
+            plt.plot(dict.keys(), dict.values(), '.', color=col[level], label=string)
+            plt.xlabel('angle')
+            plt.ylabel('frequency')
+            plt.legend()
+            plt.show()
         peaks = get_peaks(dict)
     else:
         return output_dict
@@ -221,11 +215,14 @@ def make_res_dict(general_angle, dict, angles_list):
     return result
 
 
+plt.figure(figsize=(30, 30))
 for i in range(0, len(full)):
+    plt.subplot(3, 6, i + 1)
+    plt.title(str(full[i].residue_name))
     full[i].result = find_result_angles_of_this_level(full[i].result, full[i].frequency, 1, '')
-    # plt.suptitle(str(full[i].residue_name))
-    # plt.legend()
-    # plt.show()
+    plt.legend()
+plt.subplots_adjust(top=0.95, bottom=0.001, left=0.10, right=0.95, hspace=0.25, wspace=0.35)
+plt.show()
 
 
 def printing_of_angles(num_of_angles, num, result_dict):
@@ -248,4 +245,3 @@ while True:
     for s in full:
         if input_res_name == s.residue_name:
             printing_of_angles(s.num_of_dihedral_angels, 1, s.result)
-
